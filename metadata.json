@@ -1,0 +1,8 @@
+{
+  "name": "A&T Tech Firm",
+  "description": "A&T TECH FIRM is a technology and digital-solutions company focused on building useful, modern and accessible digital products.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
