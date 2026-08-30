@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { initializeFirestore } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0828561058",
@@ -15,3 +16,6 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = initializeFirestore(app, {
   databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7"
 });
+
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();

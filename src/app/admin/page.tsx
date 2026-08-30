@@ -36,9 +36,6 @@ export default function AdminPage() {
     }
     return false;
   });
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
   // Sub-module selections/states
@@ -140,54 +137,42 @@ export default function AdminPage() {
     };
   }, [authenticated, leadsTrigger]);
 
-  // Authenticate against Firebase config details
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Authenticate against Google
+  const handleGoogleLogin = async () => {
     setAuthLoading(true);
     try {
-      const authRef = doc(db, "adminAuth", "credentials");
-      const authSnap = await getDoc(authRef);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
 
-      let targetUsername = "attechfirm";
-      let targetPassword = "attechfirm1122";
-
-      if (authSnap.exists()) {
-        const creds = authSnap.data();
-        targetUsername = creds.username || "attechfirm";
-        targetPassword = creds.password || "attechfirm1122";
-      }
-
-      if (username.trim() === targetUsername && password.trim() === targetPassword) {
+      if (user.email === "attechfirm@gmail.com") {
         setAuthenticated(true);
         if (typeof window !== "undefined") {
           sessionStorage.setItem("attechfirm_admin_auth", "true");
         }
         toast.success("Successfully logged into Admin Panel!");
       } else {
-        toast.error("Incorrect username or password. Please try again.");
+        await signOut(auth);
+        toast.error("Access denied. This account is not authorized.");
       }
     } catch (err) {
       console.warn("Auth check failed:", err);
-      if (username.trim() === "attechfirm" && password.trim() === "attechfirm1122") {
-        setAuthenticated(true);
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("attechfirm_admin_auth", "true");
-        }
-        toast.success("Successfully logged into Admin Panel!");
-      } else {
-        toast.error("Authentication check failed.");
-      }
+      toast.error("Authentication failed. Please try again.");
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setAuthenticated(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("attechfirm_admin_auth");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setAuthenticated(false);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("attechfirm_admin_auth");
+      }
+      toast.info("Logged out of Admin session.");
+    } catch (err) {
+      console.error("Logout error:", err);
     }
-    toast.info("Logged out of Admin session.");
   };
 
   // Push latest PageData structure to Firestore
@@ -303,59 +288,23 @@ export default function AdminPage() {
             </a>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="w-full bg-slate-900 border border-white/10 hover:border-white/20 focus:border-white/30 rounded-xl px-4 py-3 text-sm outline-none text-white transition-all font-mono"
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full bg-slate-900 border border-white/10 hover:border-white/20 focus:border-white/30 rounded-xl px-4 py-3 text-sm outline-none text-white transition-all font-mono pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
+          <div className="flex flex-col gap-4 text-center">
+            <h3 className="text-xl font-bold text-white">Admin Portal</h3>
+            <p className="text-sm text-slate-400">Please sign in with authorized Google account</p>
+            
             <button 
-              type="submit"
+              onClick={handleGoogleLogin}
               disabled={authLoading}
-              className="w-full mt-2 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-95 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full mt-4 py-3.5 bg-white text-slate-900 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {authLoading ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin" />
-                  Verifying Credentials...
-                </>
+                <RefreshCw size={14} className="animate-spin" />
               ) : (
-                <>
-                  <Lock size={13} />
-                  Authorize Portal Access
-                </>
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
               )}
+              Sign in with Google
             </button>
-          </form>
+          </div>
         </div>
       </div>
     );
