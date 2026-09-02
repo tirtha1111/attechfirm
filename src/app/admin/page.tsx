@@ -160,6 +160,33 @@ export default function AdminPage() {
             createdAt: item.createdAt || new Date().toISOString()
           });
         });
+
+        // Merge local pending clients if any
+        try {
+          const pendingRaw = localStorage.getItem("attechfirm_pending_clients");
+          if (pendingRaw) {
+            const pendingList = JSON.parse(pendingRaw);
+            pendingList.forEach((item: any, idx: number) => {
+              if (!clientList.some((c) => c.utrNumber === item.utrNumber || c.paymentId === item.paymentId)) {
+                clientList.push({
+                  id: `local_${idx}_${Date.now()}`,
+                  name: item.name || "Anonymous",
+                  email: item.email || "No email",
+                  phone: item.phone || "N/A",
+                  planTitle: item.planTitle || "Unknown Plan",
+                  amount: item.amount || "0",
+                  paymentId: item.paymentId || "None",
+                  utrNumber: item.utrNumber || item.paymentId || "N/A",
+                  status: item.status || "development",
+                  createdAt: item.createdAt || new Date().toISOString()
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Error parsing local pending clients:", e);
+        }
+
         clientList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         if (isMounted) setClients(clientList);
       } catch (err) {

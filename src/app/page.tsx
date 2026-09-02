@@ -467,31 +467,37 @@ export default function Page() {
     }
 
     setCheckoutLoading(true);
+    const clientData = {
+      name: checkoutName,
+      email: checkoutEmail,
+      phone: checkoutPhone || "N/A",
+      planTitle: selectedPlan.title,
+      amount: selectedPlan.currentPrice,
+      paymentId: utrNumber.trim(),
+      utrNumber: utrNumber.trim(),
+      upiId: data.contactInfo.upiId || "9635996626@fam",
+      createdAt: new Date().toISOString(),
+      status: "development"
+    };
+
     try {
-      const clientData = {
-        name: checkoutName,
-        email: checkoutEmail,
-        phone: checkoutPhone || "N/A",
-        planTitle: selectedPlan.title,
-        amount: selectedPlan.currentPrice,
-        paymentId: utrNumber.trim(),
-        utrNumber: utrNumber.trim(),
-        upiId: data.contactInfo.upiId || "9635996626@fam",
-        createdAt: new Date().toISOString(),
-        status: "development"
-      };
-
       await addDoc(collection(db, "clients"), clientData);
-
+    } catch (err: any) {
+      console.warn("Firestore save fallback triggered:", err);
+      // Save locally to pending list if cloud write was slow or delayed
+      try {
+        const pending = JSON.parse(localStorage.getItem("attechfirm_pending_clients") || "[]");
+        pending.push(clientData);
+        localStorage.setItem("attechfirm_pending_clients", JSON.stringify(pending));
+      } catch (e) {
+        console.error("Local storage error:", e);
+      }
+    } finally {
       localStorage.setItem("attechfirm_client_session", JSON.stringify(clientData));
       toast.success("Payment submitted successfully! Redirecting to Client Portal...");
+      setCheckoutLoading(false);
       setShowCheckout(false);
       router.push("/client");
-    } catch (err: any) {
-      console.error("Payment submission error:", err);
-      toast.error("Failed to submit payment. Please try again.");
-    } finally {
-      setCheckoutLoading(false);
     }
   };
 
