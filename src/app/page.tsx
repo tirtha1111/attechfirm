@@ -510,7 +510,7 @@ export default function Page() {
             {adminMode ? (
               <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs text-emerald-400 font-medium shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-semibold text-[11px]">Tirtharaj Biswas (Admin)</span>
+                <span className="font-semibold text-[11px]">AT Tech Firm (Admin)</span>
                 <button 
                   onClick={handleLogout}
                   className="ml-1 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 rounded-full transition-all"
