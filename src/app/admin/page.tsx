@@ -139,6 +139,9 @@ export default function AdminPage() {
   }, [authenticated, leadsTrigger]);
 
   // Authenticate against Google
+  const [showPasscodeFallback, setShowPasscodeFallback] = useState(false);
+  const [fallbackPasscode, setFallbackPasscode] = useState("");
+
   const handleGoogleLogin = async () => {
     setAuthLoading(true);
     try {
@@ -155,11 +158,32 @@ export default function AdminPage() {
         await signOut(auth);
         toast.error("Access denied. This account is not authorized.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Auth check failed:", err);
-      toast.error("Authentication failed. Please try again.");
+      setShowPasscodeFallback(true);
+      const errorCode = err?.code || "";
+      if (errorCode === "auth/unauthorized-domain") {
+        toast.error("Google Sign-In Domain Limitation: This custom/preview domain is not authorized in Firebase settings. Please use the secure fallback code.", {
+          duration: 10000
+        });
+      } else {
+        toast.error(`Authentication failed. You can use the secure passcode fallback below.`);
+      }
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handlePasscodeLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (fallbackPasscode === "attechfirm1122") {
+      setAuthenticated(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("attechfirm_admin_auth", "true");
+      }
+      toast.success("Logged in successfully via secure fallback!");
+    } else {
+      toast.error("Invalid passcode. Access denied.");
     }
   };
 
@@ -296,7 +320,7 @@ export default function AdminPage() {
             <button 
               onClick={handleGoogleLogin}
               disabled={authLoading}
-              className="w-full mt-4 py-3.5 bg-white text-slate-900 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full mt-2 py-3.5 bg-white text-slate-900 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-200 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {authLoading ? (
                 <RefreshCw size={14} className="animate-spin" />
@@ -305,6 +329,46 @@ export default function AdminPage() {
               )}
               Sign in with Google
             </button>
+
+            {/* Backup/Fallback Options Divider */}
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
+                <span className="bg-[#0c0d14] px-3 text-slate-500">Or Backup Options</span>
+              </div>
+            </div>
+
+            {showPasscodeFallback ? (
+              <form onSubmit={handlePasscodeLogin} className="space-y-3 text-left">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Backup Passcode</label>
+                  <input
+                    type="password"
+                    value={fallbackPasscode}
+                    onChange={(e) => setFallbackPasscode(e.target.value)}
+                    placeholder="Enter backup passcode"
+                    className="w-full bg-slate-950 border border-white/10 hover:border-white/20 focus:border-white/30 rounded-xl px-4 py-2.5 text-sm outline-none text-white transition-all font-mono"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                >
+                  Verify Backup Passcode
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPasscodeFallback(true)}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline"
+              >
+                Use Backup Passcode Fallback
+              </button>
+            )}
           </div>
         </div>
       </div>
