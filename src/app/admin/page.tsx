@@ -206,7 +206,7 @@ export default function AdminPage() {
     try {
       const docRef = doc(db, "pageData", "main");
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection or verify your Firestore setup.")), 6000)
+        setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection.")), 15000)
       );
 
       await Promise.race([
@@ -232,7 +232,7 @@ export default function AdminPage() {
         setData(INITIAL_PAGE_DATA);
         const docRef = doc(db, "pageData", "main");
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection or verify your Firestore setup.")), 6000)
+          setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection.")), 15000)
         );
 
         await Promise.race([

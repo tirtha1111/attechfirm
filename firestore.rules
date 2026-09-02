@@ -10,8 +10,7 @@ service cloud.firestore {
       allow write: if true;
     }
     match /contacts/{document} {
-      allow create: if true;
-      allow read, update, delete: if false;
+      allow read, write: if true;
     }
   }
 }

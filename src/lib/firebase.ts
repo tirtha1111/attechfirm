@@ -13,15 +13,13 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
+const DATABASE_ID = "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7";
+
 const getSafeDb = () => {
   try {
-    return initializeFirestore(app, {
-      databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7",
-      experimentalForceLongPolling: true,
-      localCache: memoryLocalCache(),
-    });
+    return initializeFirestore(app, {}, DATABASE_ID);
   } catch (e) {
-    return getFirestore(app, "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7");
+    return getFirestore(app, DATABASE_ID);
   }
 };
 
