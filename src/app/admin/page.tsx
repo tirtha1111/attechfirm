@@ -22,12 +22,25 @@ interface ContactLead {
   createdAt: string;
 }
 
+interface ClientOrder {
+  id: string;
+  name: string;
+  email: string;
+  planTitle: string;
+  amount: string;
+  paymentId: string;
+  status: string;
+  createdAt: string;
+}
+
 export default function AdminPage() {
   const [data, setData] = useState<PageData>(INITIAL_PAGE_DATA);
   const [leads, setLeads] = useState<ContactLead[]>([]);
-  const [activeTab, setActiveTab] = useState<"general" | "modules" | "leads">("general");
+  const [clients, setClients] = useState<ClientOrder[]>([]);
+  const [activeTab, setActiveTab] = useState<"general" | "modules" | "leads" | "clients">("general");
   const [loading, setLoading] = useState(true);
   const [leadsLoading, setLeadsLoading] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(false);
   const [leadsTrigger, setLeadsTrigger] = useState(0);
 
   // Auth States
@@ -98,11 +111,13 @@ export default function AdminPage() {
     if (!authenticated) return;
 
     let isMounted = true;
-    const fetchLeads = async () => {
+    const fetchLeadsAndClients = async () => {
       // Async defer
       await Promise.resolve();
       if (!isMounted) return;
       setLeadsLoading(true);
+      setClientsLoading(true);
+      
       try {
         const qSnap = await getDocs(collection(db, "contacts"));
         const list: ContactLead[] = [];
@@ -117,21 +132,40 @@ export default function AdminPage() {
             createdAt: item.createdAt || new Date().toISOString()
           });
         });
-        // Sort newest first
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (isMounted) {
-          setLeads(list);
-        }
+        if (isMounted) setLeads(list);
       } catch (err) {
         console.warn("Error loading leads:", err);
       } finally {
-        if (isMounted) {
-          setLeadsLoading(false);
-        }
+        if (isMounted) setLeadsLoading(false);
+      }
+
+      try {
+        const clientSnap = await getDocs(collection(db, "clients"));
+        const clientList: ClientOrder[] = [];
+        clientSnap.forEach((d) => {
+          const item = d.data();
+          clientList.push({
+            id: d.id,
+            name: item.name || "Anonymous",
+            email: item.email || "No email",
+            planTitle: item.planTitle || "Unknown Plan",
+            amount: item.amount || "0",
+            paymentId: item.paymentId || "None",
+            status: item.status || "development",
+            createdAt: item.createdAt || new Date().toISOString()
+          });
+        });
+        clientList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (isMounted) setClients(clientList);
+      } catch (err) {
+        console.warn("Error loading clients:", err);
+      } finally {
+        if (isMounted) setClientsLoading(false);
       }
     };
 
-    fetchLeads();
+    fetchLeadsAndClients();
 
     return () => {
       isMounted = false;
@@ -484,6 +518,25 @@ export default function AdminPage() {
             {leads.length > 0 && (
               <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${activeTab === "leads" ? "bg-slate-950 text-amber-400" : "bg-amber-400 text-slate-950"}`}>
                 {leads.length}
+              </span>
+            )}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("clients")}
+            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-3 justify-between transition-all ${
+              activeTab === "clients" 
+                ? "bg-amber-400 text-slate-950 font-bold shadow-md" 
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <DollarSign size={15} />
+              <span>Paid Orders &amp; Clients</span>
+            </div>
+            {clients.length > 0 && (
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${activeTab === "clients" ? "bg-slate-950 text-amber-400" : "bg-amber-400 text-slate-950"}`}>
+                {clients.length}
               </span>
             )}
           </button>
@@ -1270,6 +1323,81 @@ export default function AdminPage() {
                         >
                           <Trash2 size={13} />
                         </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* TAB 4: CLIENTS / ORDERS */}
+          {activeTab === "clients" && (
+            <div className="bg-[#0c0d14] border border-white/10 rounded-2xl p-6 text-left space-y-6">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div>
+                  <h2 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <DollarSign size={16} className="text-emerald-400" />
+                    Paid Orders &amp; Clients
+                  </h2>
+                  <p className="text-xs text-slate-400">View real-time confirmed payments and active development projects</p>
+                </div>
+                <button 
+                  onClick={() => setLeadsTrigger((prev) => prev + 1)}
+                  disabled={clientsLoading}
+                  className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl transition-all border border-white/5"
+                  title="Reload Clients"
+                >
+                  <RefreshCw size={14} className={clientsLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+
+              {clientsLoading ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <RefreshCw size={24} className="animate-spin text-emerald-400" />
+                  <p className="text-xs font-semibold uppercase tracking-wider">Syncing Client list...</p>
+                </div>
+              ) : clients.length === 0 ? (
+                <div className="py-16 text-center space-y-2 text-slate-400">
+                  <DollarSign size={36} className="mx-auto opacity-30 text-slate-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider">No Paid Clients Yet</h3>
+                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto">Users who purchase a package via the website checkout will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {clients.map((client) => (
+                    <div key={client.id} className="bg-slate-900/50 border border-emerald-500/10 hover:border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between md:flex-row gap-4 transition-all">
+                      <div className="space-y-3 text-left w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <h4 className="text-sm font-bold text-white">{client.name}</h4>
+                            <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold uppercase tracking-wider">
+                              Paid
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-white">{client.amount}</p>
+                            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">{client.paymentId}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1 text-[11px] text-slate-300">
+                          <div className="flex items-center gap-1.5">
+                            <Mail size={12} className="text-slate-400" />
+                            <a href={`mailto:${client.email}`} className="hover:underline text-slate-300 font-medium">
+                              {client.email}
+                            </a>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                            Purchased: {new Date(client.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 rounded-xl p-3 text-xs text-emerald-300 border border-emerald-500/10 leading-relaxed font-semibold">
+                          Selected Package: {client.planTitle}
+                          <br/>
+                          <span className="text-[10px] font-normal text-slate-400 mt-1 block">Status: {client.status.toUpperCase()}</span>
+                        </div>
                       </div>
                     </div>
                   ))}

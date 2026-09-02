@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Script from "next/script";
 import { 
   Lock, LogOut, Plus, Trash2, Edit, Save, Check, CheckSquare, 
   Clock, Heart, DollarSign, PenTool, LifeBuoy, Cpu, TrendingUp, Users, 
@@ -178,6 +180,14 @@ export default function Page() {
 
   // Scroll Progress Percentage
   const [scrollPercent, setScrollPercent] = useState(0);
+
+  // Checkout states
+  const router = useRouter();
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [checkoutName, setCheckoutName] = useState("");
+  const [checkoutEmail, setCheckoutEmail] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // 0. Sync auth state from session storage on mount
   useEffect(() => {
@@ -443,8 +453,109 @@ export default function Page() {
     }
   };
 
+  const verifyPayment = async (paymentResponse: any) => {
+    try {
+      const res = await fetch("/api/razorpay/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentResponse)
+      });
+      const resData = await res.json();
+      
+      if (resData.success) {
+        const clientData = {
+          name: checkoutName,
+          email: checkoutEmail,
+          planTitle: selectedPlan?.title,
+          amount: selectedPlan?.currentPrice,
+          paymentId: paymentResponse.razorpay_payment_id || "mock_payment",
+          createdAt: new Date().toISOString(),
+          status: "development"
+        };
+        await addDoc(collection(db, "clients"), clientData);
+        
+        localStorage.setItem("attechfirm_client_session", JSON.stringify(clientData));
+        toast.success("Payment successful! Redirecting to client dashboard...");
+        setShowCheckout(false);
+        router.push("/client");
+      } else {
+        toast.error("Payment verification failed.");
+      }
+    } catch (err) {
+      toast.error("An error occurred during verification.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const initiateRazorpayPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan || !checkoutName || !checkoutEmail) return;
+
+    setCheckoutLoading(true);
+    try {
+      const amountString = selectedPlan.currentPrice.replace(/[^0-9]/g, "");
+      const amount = parseInt(amountString) || 499;
+
+      const res = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, planTitle: selectedPlan.title, name: checkoutName, email: checkoutEmail })
+      });
+      const order = await res.json();
+
+      if (order.error) {
+        throw new Error(order.error);
+      }
+
+      if (order.isMock) {
+        toast.success("Test Mode: Simulating payment success...");
+        setTimeout(() => {
+          verifyPayment({ 
+            razorpay_order_id: order.id, 
+            razorpay_payment_id: "pay_mock_123", 
+            razorpay_signature: "mock_sig", 
+            isMock: true 
+          });
+        }, 1500);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+        amount: order.amount,
+        currency: order.currency,
+        name: "AT Techfirm",
+        description: `Payment for ${selectedPlan.title}`,
+        order_id: order.id,
+        handler: function (response: any) {
+          verifyPayment(response);
+        },
+        prefill: {
+          name: checkoutName,
+          email: checkoutEmail,
+        },
+        theme: {
+          color: "#0f172a"
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        toast.error(response.error.description || "Payment failed");
+        setCheckoutLoading(false);
+      });
+      rzp.open();
+
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate payment");
+      setCheckoutLoading(false);
+    }
+  };
+
   return (
     <div className="bg-[#030305] text-slate-100 min-h-screen relative font-sans selection:bg-slate-700 selection:text-white pb-24">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Toaster position="top-right" theme="dark" closeButton />
 
       {/* Top Scroll Progress Bar */}
@@ -1302,16 +1413,20 @@ export default function Page() {
               </div>
 
               {/* Action Button */}
-              <a 
-                href="#contact" 
-                className={`mt-8 py-3.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider transition-all block ${
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedPlan(plan);
+                  setShowCheckout(true);
+                }}
+                className={`mt-8 w-full py-3.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider transition-all block ${
                   plan.isPopular
                     ? "bg-gradient-to-r from-slate-100 to-white text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02]"
                     : "bg-white/10 hover:bg-white/15 text-white border border-white/15 hover:border-white/25"
                 }`}
               >
                 Choose Package
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -1585,6 +1700,70 @@ export default function Page() {
           </p>
         </div>
       </footer>
+
+      {/* ================= CHECKOUT MODAL ================= */}
+      {showCheckout && selectedPlan && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowCheckout(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">Checkout Details</h3>
+              <p className="text-sm text-slate-400">
+                You are purchasing the <strong className="text-white">{selectedPlan.title}</strong> package for <strong className="text-white">{selectedPlan.currentPrice}</strong>.
+              </p>
+            </div>
+            
+            <form onSubmit={initiateRazorpayPayment} className="space-y-4">
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Full Name</label>
+                <input 
+                  type="text" 
+                  value={checkoutName}
+                  onChange={(e) => setCheckoutName(e.target.value)}
+                  placeholder="John Doe"
+                  required
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 transition-all"
+                />
+              </div>
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</label>
+                <input 
+                  type="email" 
+                  value={checkoutEmail}
+                  onChange={(e) => setCheckoutEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  required
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 transition-all"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-white/10">
+                <button 
+                  type="submit" 
+                  disabled={checkoutLoading}
+                  className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl text-sm font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {checkoutLoading ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Lock size={16} /> Pay Securely via UPI/Card
+                    </>
+                  )}
+                </button>
+                <p className="text-center text-[10px] text-slate-500 mt-4 flex items-center justify-center gap-1">
+                  <ShieldCheck size={12} /> Secure encrypted checkout powered by Razorpay
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Persistent Floating Admin Toolbar when logged in */}
       {adminMode && (

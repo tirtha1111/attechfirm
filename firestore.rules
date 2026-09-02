@@ -12,6 +12,9 @@ service cloud.firestore {
     match /contacts/{document} {
       allow read, write: if true;
     }
+    match /clients/{document} {
+      allow read, write: if true;
+    }
   }
 }
 
