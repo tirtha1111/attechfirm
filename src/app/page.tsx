@@ -513,13 +513,6 @@ export default function Page() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <a 
-                  href="/admin"
-                  className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-3.5 py-1.5 rounded-full text-xs text-slate-300 hover:text-white transition-all border border-white/10 hover:border-white/20"
-                >
-                  <Lock size={12} className="text-slate-400" />
-                  <span>Admin Portal</span>
-                </a>
                 <a
                   href="#contact"
                   className="hidden sm:inline-flex items-center gap-1 px-4 py-1.5 bg-gradient-to-r from-slate-100 to-slate-300 text-slate-950 font-bold rounded-full text-xs uppercase tracking-wider hover:opacity-90 transition-all shadow-md"
@@ -563,14 +556,7 @@ export default function Page() {
               >
                 <LogOut size={16} /> Logout Admin Session
               </button>
-            ) : (
-              <a
-                href="/admin"
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 rounded-xl transition-all"
-              >
-                <Lock size={15} /> Admin Portal Login
-              </a>
-            )}
+            ) : null}
           </div>
         )}
       </header>
@@ -1587,7 +1573,7 @@ export default function Page() {
             <a href="#contact" className="hover:text-white transition-all">Contact</a>
           </div>
           <p className="text-[10px] text-slate-400 font-mono">
-            © 2026 A&T TECH FIRM — Building Digital Solutions for a Better Tomorrow
+            <a href="/admin" className="hover:text-slate-300 transition-colors select-none mr-0.5" title="Admin Auth Access">©</a> 2026 A&T TECH FIRM — Building Digital Solutions for a Better Tomorrow
           </p>
         </div>
       </footer>
@@ -1639,17 +1625,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* Floating Quick Admin Access Button when logged out */}
-      {!adminMode && (
-        <a
-          href="/admin"
-          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-slate-800 to-slate-900 border border-white/20 hover:border-amber-400 text-slate-200 hover:text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:scale-105"
-          title="Open Admin Portal"
-        >
-          <Lock size={14} className="text-amber-400" />
-          <span>Admin Portal</span>
-        </a>
-      )}
+      {/* Floating Quick Admin Access Button when logged out (Removed to keep login portal secure/hidden) */}
     </div>
   );
 }

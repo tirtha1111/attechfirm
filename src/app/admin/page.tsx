@@ -7,8 +7,9 @@ import {
   HelpCircle, MessageSquare, Globe, ArrowLeft, RefreshCw, Eye, EyeOff, Check
 } from "lucide-react";
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, onSnapshot } from "firebase/firestore";
+import { signInWithPopup, signOut } from "firebase/auth";
 import { Toaster, toast } from "sonner";
-import { db } from "@/lib/firebase";
+import { db, auth, googleProvider } from "@/lib/firebase";
 import { PageData, INITIAL_PAGE_DATA, Service, Founder, WhyReason, ProcessStep, PricingPlan, FAQItem } from "@/lib/types";
 
 // Types for Contact Leads stored in Firestore
