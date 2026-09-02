@@ -397,15 +397,23 @@ export default function Page() {
     const toastId = toast.loading("Saving changes to Firebase database...");
     try {
       const docRef = doc(db, "pageData", "main");
-      await setDoc(docRef, {
-        ...data,
-        updatedAt: new Date().toISOString()
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection or verify your Firestore setup.")), 6000)
+      );
+
+      await Promise.race([
+        setDoc(docRef, {
+          ...data,
+          updatedAt: new Date().toISOString()
+        }),
+        timeoutPromise
+      ]);
+
       setHasUnsavedChanges(false);
       toast.success("Published Live to Firebase! Latest website is updated.", { id: toastId });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Save error: ", err);
-      toast.error("Failed to save changes to Firebase. Please try again.", { id: toastId });
+      toast.error(err?.message || "Failed to save changes to Firebase. Please try again.", { id: toastId });
     }
   };
 

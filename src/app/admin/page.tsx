@@ -205,14 +205,22 @@ export default function AdminPage() {
     const toastId = toast.loading("Publishing all changes to Firebase database...");
     try {
       const docRef = doc(db, "pageData", "main");
-      await setDoc(docRef, {
-        ...data,
-        updatedAt: new Date().toISOString()
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection or verify your Firestore setup.")), 6000)
+      );
+
+      await Promise.race([
+        setDoc(docRef, {
+          ...data,
+          updatedAt: new Date().toISOString()
+        }),
+        timeoutPromise
+      ]);
+
       toast.success("All sections published live!", { id: toastId });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to publish content changes.", { id: toastId });
+      toast.error(err?.message || "Failed to publish content changes.", { id: toastId });
     }
   };
 
@@ -223,14 +231,22 @@ export default function AdminPage() {
       try {
         setData(INITIAL_PAGE_DATA);
         const docRef = doc(db, "pageData", "main");
-        await setDoc(docRef, {
-          ...INITIAL_PAGE_DATA,
-          updatedAt: new Date().toISOString()
-        });
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Connection timeout. Please check your internet connection or verify your Firestore setup.")), 6000)
+        );
+
+        await Promise.race([
+          setDoc(docRef, {
+            ...INITIAL_PAGE_DATA,
+            updatedAt: new Date().toISOString()
+          }),
+          timeoutPromise
+        ]);
+
         toast.success("All site content reset and updated on Firebase!", { id: toastId });
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        toast.error("Failed to restore default records.", { id: toastId });
+        toast.error(err?.message || "Failed to restore default records.", { id: toastId });
       }
     }
   };

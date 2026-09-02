@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeFirestore } from "firebase/firestore";
+import { initializeFirestore, getFirestore, memoryLocalCache } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
@@ -13,10 +13,19 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-export const db = initializeFirestore(app, {
-  databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7",
-  experimentalForceLongPolling: true,
-});
+const getSafeDb = () => {
+  try {
+    return initializeFirestore(app, {
+      databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7",
+      experimentalForceLongPolling: true,
+      localCache: memoryLocalCache(),
+    });
+  } catch (e) {
+    return getFirestore(app, "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7");
+  }
+};
+
+export const db = getSafeDb();
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
