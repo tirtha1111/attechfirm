@@ -26,9 +26,11 @@ interface ClientOrder {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   planTitle: string;
   amount: string;
   paymentId: string;
+  utrNumber?: string;
   status: string;
   createdAt: string;
 }
@@ -149,9 +151,11 @@ export default function AdminPage() {
             id: d.id,
             name: item.name || "Anonymous",
             email: item.email || "No email",
+            phone: item.phone || "N/A",
             planTitle: item.planTitle || "Unknown Plan",
             amount: item.amount || "0",
             paymentId: item.paymentId || "None",
+            utrNumber: item.utrNumber || item.paymentId || "N/A",
             status: item.status || "development",
             createdAt: item.createdAt || new Date().toISOString()
           });
@@ -688,6 +692,19 @@ export default function AdminPage() {
                         updateValue("contactInfo", updated);
                       }}
                       className="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Official UPI ID for Direct QR Payments</label>
+                    <input
+                      type="text"
+                      value={data.contactInfo.upiId || "9635996626@fam"}
+                      onChange={(e) => {
+                        const updated = { ...data.contactInfo, upiId: e.target.value };
+                        updateValue("contactInfo", updated);
+                      }}
+                      placeholder="e.g. 9635996626@fam"
+                      className="w-full bg-slate-900 border border-amber-400/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:border-amber-400 outline-none"
                     />
                   </div>
                 </div>
@@ -1366,37 +1383,50 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-4">
                   {clients.map((client) => (
-                    <div key={client.id} className="bg-slate-900/50 border border-emerald-500/10 hover:border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between md:flex-row gap-4 transition-all">
+                    <div key={client.id} className="bg-slate-900/50 border border-emerald-500/15 hover:border-emerald-500/30 rounded-2xl p-5 flex flex-col justify-between md:flex-row gap-4 transition-all">
                       <div className="space-y-3 text-left w-full">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/5 pb-3">
                           <div className="flex items-center gap-2.5">
                             <h4 className="text-sm font-bold text-white">{client.name}</h4>
                             <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold uppercase tracking-wider">
-                              Paid
+                              UPI Payment Submitted
                             </span>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-black text-white">{client.amount}</p>
-                            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">{client.paymentId}</p>
+                          <div className="sm:text-right">
+                            <p className="text-base font-black text-emerald-400">{client.amount}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">
+                              UTR Ref: <span className="text-amber-300 font-bold">{client.utrNumber || client.paymentId}</span>
+                            </p>
                           </div>
                         </div>
                         
-                        <div className="flex flex-col gap-1 text-[11px] text-slate-300">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300">
                           <div className="flex items-center gap-1.5">
-                            <Mail size={12} className="text-slate-400" />
-                            <a href={`mailto:${client.email}`} className="hover:underline text-slate-300 font-medium">
+                            <Mail size={12} className="text-slate-400 flex-none" />
+                            <a href={`mailto:${client.email}`} className="hover:underline text-slate-300 font-medium truncate">
                               {client.email}
                             </a>
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-1 font-mono">
-                            Purchased: {new Date(client.createdAt).toLocaleString()}
+                          {client.phone && client.phone !== "N/A" && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-slate-500 font-bold">TEL:</span>
+                              <span className="text-slate-300 font-mono">{client.phone}</span>
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-400 font-mono col-span-full">
+                            Submitted On: {new Date(client.createdAt).toLocaleString()}
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 rounded-xl p-3 text-xs text-emerald-300 border border-emerald-500/10 leading-relaxed font-semibold">
-                          Selected Package: {client.planTitle}
-                          <br/>
-                          <span className="text-[10px] font-normal text-slate-400 mt-1 block">Status: {client.status.toUpperCase()}</span>
+                        <div className="bg-slate-950/80 rounded-xl p-3 text-xs text-white border border-emerald-500/15 leading-relaxed font-semibold flex items-center justify-between">
+                          <div>
+                            <span className="text-slate-400 text-[10px] block font-normal uppercase">Selected Package</span>
+                            <span className="text-emerald-300">{client.planTitle}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-slate-400 text-[10px] block font-normal uppercase">Development Status</span>
+                            <span className="text-blue-400 text-[11px] uppercase font-mono">{client.status}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -6,7 +6,7 @@ import Script from "next/script";
 import { 
   Lock, LogOut, Plus, Trash2, Edit, Save, Check, CheckSquare, 
   Clock, Heart, DollarSign, PenTool, LifeBuoy, Cpu, TrendingUp, Users, 
-  ChevronDown, ChevronUp, Mail, Phone, MapPin, Globe, Sparkles, 
+  ChevronDown, ChevronUp, ChevronRight, Copy, ExternalLink, Mail, Phone, MapPin, Globe, Sparkles, 
   X, Menu, ArrowRight, Eye, EyeOff, ShieldCheck, CheckCircle2,
   Layers, Zap, Send, RefreshCw, AlertCircle, Laptop, Database, Activity,
   RotateCcw
@@ -185,8 +185,12 @@ export default function Page() {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutEmail, setCheckoutEmail] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [utrNumber, setUtrNumber] = useState("");
+  const [copiedUpi, setCopiedUpi] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // 0. Sync auth state from session storage on mount
@@ -453,104 +457,49 @@ export default function Page() {
     }
   };
 
-  const verifyPayment = async (paymentResponse: any) => {
+  const handleUpiPaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan || !checkoutName || !checkoutEmail) return;
+
+    if (!utrNumber || utrNumber.trim().length < 6) {
+      toast.error("Please enter a valid 12-digit UTR / UPI Transaction Reference ID.");
+      return;
+    }
+
+    setCheckoutLoading(true);
     try {
-      const res = await fetch("/api/razorpay/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paymentResponse)
-      });
-      const resData = await res.json();
-      
-      if (resData.success) {
-        const clientData = {
-          name: checkoutName,
-          email: checkoutEmail,
-          planTitle: selectedPlan?.title,
-          amount: selectedPlan?.currentPrice,
-          paymentId: paymentResponse.razorpay_payment_id || "mock_payment",
-          createdAt: new Date().toISOString(),
-          status: "development"
-        };
-        await addDoc(collection(db, "clients"), clientData);
-        
-        localStorage.setItem("attechfirm_client_session", JSON.stringify(clientData));
-        toast.success("Payment successful! Redirecting to client dashboard...");
-        setShowCheckout(false);
-        router.push("/client");
-      } else {
-        toast.error("Payment verification failed.");
-      }
-    } catch (err) {
-      toast.error("An error occurred during verification.");
+      const clientData = {
+        name: checkoutName,
+        email: checkoutEmail,
+        phone: checkoutPhone || "N/A",
+        planTitle: selectedPlan.title,
+        amount: selectedPlan.currentPrice,
+        paymentId: utrNumber.trim(),
+        utrNumber: utrNumber.trim(),
+        upiId: data.contactInfo.upiId || "9635996626@fam",
+        createdAt: new Date().toISOString(),
+        status: "development"
+      };
+
+      await addDoc(collection(db, "clients"), clientData);
+
+      localStorage.setItem("attechfirm_client_session", JSON.stringify(clientData));
+      toast.success("Payment submitted successfully! Redirecting to Client Portal...");
+      setShowCheckout(false);
+      router.push("/client");
+    } catch (err: any) {
+      console.error("Payment submission error:", err);
+      toast.error("Failed to submit payment. Please try again.");
     } finally {
       setCheckoutLoading(false);
     }
   };
 
-  const initiateRazorpayPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlan || !checkoutName || !checkoutEmail) return;
-
-    setCheckoutLoading(true);
-    try {
-      const amountString = selectedPlan.currentPrice.replace(/[^0-9]/g, "");
-      const amount = parseInt(amountString) || 499;
-
-      const res = await fetch("/api/razorpay/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, planTitle: selectedPlan.title, name: checkoutName, email: checkoutEmail })
-      });
-      const order = await res.json();
-
-      if (order.error) {
-        throw new Error(order.error);
-      }
-
-      if (order.isMock) {
-        toast.success("Test Mode: Simulating payment success...");
-        setTimeout(() => {
-          verifyPayment({ 
-            razorpay_order_id: order.id, 
-            razorpay_payment_id: "pay_mock_123", 
-            razorpay_signature: "mock_sig", 
-            isMock: true 
-          });
-        }, 1500);
-        return;
-      }
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
-        amount: order.amount,
-        currency: order.currency,
-        name: "AT Techfirm",
-        description: `Payment for ${selectedPlan.title}`,
-        order_id: order.id,
-        handler: function (response: any) {
-          verifyPayment(response);
-        },
-        prefill: {
-          name: checkoutName,
-          email: checkoutEmail,
-        },
-        theme: {
-          color: "#0f172a"
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
-        toast.error(response.error.description || "Payment failed");
-        setCheckoutLoading(false);
-      });
-      rzp.open();
-
-    } catch (err: any) {
-      toast.error(err.message || "Failed to initiate payment");
-      setCheckoutLoading(false);
-    }
+  const copyUpiId = (upi: string) => {
+    navigator.clipboard.writeText(upi);
+    setCopiedUpi(true);
+    toast.success("UPI ID copied to clipboard!");
+    setTimeout(() => setCopiedUpi(false), 2000);
   };
 
   return (
@@ -1703,64 +1652,191 @@ export default function Page() {
 
       {/* ================= CHECKOUT MODAL ================= */}
       {showCheckout && selectedPlan && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0b0c14] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative my-8 text-left">
             <button 
-              onClick={() => setShowCheckout(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              onClick={() => {
+                setShowCheckout(false);
+                setCheckoutStep(1);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
             >
               <X size={20} />
             </button>
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-white mb-2">Checkout Details</h3>
-              <p className="text-sm text-slate-400">
-                You are purchasing the <strong className="text-white">{selectedPlan.title}</strong> package for <strong className="text-white">{selectedPlan.currentPrice}</strong>.
-              </p>
-            </div>
-            
-            <form onSubmit={initiateRazorpayPayment} className="space-y-4">
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Full Name</label>
-                <input 
-                  type="text" 
-                  value={checkoutName}
-                  onChange={(e) => setCheckoutName(e.target.value)}
-                  placeholder="John Doe"
-                  required
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 transition-all"
-                />
-              </div>
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</label>
-                <input 
-                  type="email" 
-                  value={checkoutEmail}
-                  onChange={(e) => setCheckoutEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  required
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 transition-all"
-                />
-              </div>
 
-              <div className="pt-4 border-t border-white/10">
-                <button 
-                  type="submit" 
-                  disabled={checkoutLoading}
-                  className="w-full py-4 bg-white hover:bg-slate-200 text-slate-950 rounded-xl text-sm font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {checkoutLoading ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Lock size={16} /> Pay Securely via UPI/Card
-                    </>
-                  )}
-                </button>
-                <p className="text-center text-[10px] text-slate-500 mt-4 flex items-center justify-center gap-1">
-                  <ShieldCheck size={12} /> Secure encrypted checkout powered by Razorpay
-                </p>
+            {checkoutStep === 1 ? (
+              <div>
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <DollarSign size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white tracking-tight mb-1">Package Checkout</h3>
+                  <p className="text-xs text-slate-400">
+                    Selected Package: <strong className="text-emerald-400">{selectedPlan.title}</strong> ({selectedPlan.currentPrice})
+                  </p>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!checkoutName || !checkoutEmail) {
+                    toast.error("Please fill in your name and email.");
+                    return;
+                  }
+                  setCheckoutStep(2);
+                }} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Full Name *</label>
+                    <input 
+                      type="text" 
+                      value={checkoutName}
+                      onChange={(e) => setCheckoutName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      required
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address *</label>
+                    <input 
+                      type="email" 
+                      value={checkoutEmail}
+                      onChange={(e) => setCheckoutEmail(e.target.value)}
+                      placeholder="rahul@example.com"
+                      required
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Phone / WhatsApp Number (Optional)</label>
+                    <input 
+                      type="tel" 
+                      value={checkoutPhone}
+                      onChange={(e) => setCheckoutPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-all"
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t border-white/10">
+                    <button 
+                      type="submit" 
+                      className="w-full py-4 bg-emerald-400 hover:bg-emerald-300 text-slate-950 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.3)]"
+                    >
+                      <span>Proceed to UPI Payment</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            ) : (
+              <div>
+                {/* Step 2: UPI Scanner & Payment Options */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                  <div>
+                    <button 
+                      type="button" 
+                      onClick={() => setCheckoutStep(1)} 
+                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1 mb-1"
+                    >
+                      ← Back to Details
+                    </button>
+                    <h3 className="text-xl font-bold text-white tracking-tight">Scan QR or Pay via UPI</h3>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400 block font-mono">Amount</span>
+                    <span className="text-base font-extrabold text-emerald-400">{selectedPlan.currentPrice}</span>
+                  </div>
+                </div>
+
+                {(() => {
+                  const rawAmount = selectedPlan.currentPrice.replace(/[^0-9]/g, "");
+                  const cleanAmount = rawAmount || "1499";
+                  const currentUpiId = data.contactInfo.upiId || "9635996626@fam";
+                  const upiUri = `upi://pay?pa=${encodeURIComponent(currentUpiId)}&pn=${encodeURIComponent("AT Tech Firm")}&am=${cleanAmount}&cu=INR&tn=${encodeURIComponent("Payment for " + selectedPlan.title)}`;
+                  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
+
+                  return (
+                    <div className="space-y-6">
+                      {/* UPI ID Banner with 1-click Copy */}
+                      <div className="bg-slate-950 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Official UPI ID</span>
+                          <span className="text-sm font-mono font-bold text-emerald-300">{currentUpiId}</span>
+                        </div>
+                        <button 
+                          onClick={() => copyUpiId(currentUpiId)}
+                          className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-white/10"
+                        >
+                          {copiedUpi ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                          <span>{copiedUpi ? "Copied!" : "Copy UPI"}</span>
+                        </button>
+                      </div>
+
+                      {/* Dynamic QR Code */}
+                      <div className="bg-white p-4 rounded-2xl text-center max-w-[240px] mx-auto border-4 border-slate-800 shadow-xl relative group">
+                        <img 
+                          src={qrCodeUrl} 
+                          alt="UPI QR Code" 
+                          className="w-full h-auto mx-auto rounded-lg"
+                        />
+                        <div className="mt-2 text-[10px] font-bold text-slate-800 uppercase tracking-wider">
+                          A&T TECH FIRM • {selectedPlan.currentPrice}
+                        </div>
+                      </div>
+
+                      {/* Mobile Deep Link Redirect Button */}
+                      <div>
+                        <a 
+                          href={upiUri}
+                          target="_self"
+                          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <ExternalLink size={16} />
+                          <span>Pay via Installed UPI App (GPay/PhonePe/Paytm)</span>
+                        </a>
+                        <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                          Clicking this will automatically open your phone's payment app
+                        </p>
+                      </div>
+
+                      {/* UTR Input Form */}
+                      <form onSubmit={handleUpiPaymentSubmit} className="space-y-4 pt-2 border-t border-white/10">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                            <span>12-Digit UPI Transaction / UTR Ref ID *</span>
+                            <span className="text-emerald-400 text-[9px] font-mono">From UPI App Receipt</span>
+                          </label>
+                          <input 
+                            type="text" 
+                            value={utrNumber}
+                            onChange={(e) => setUtrNumber(e.target.value)}
+                            placeholder="e.g. 423156890123"
+                            required
+                            className="w-full bg-slate-950 border border-white/15 rounded-xl px-4 py-3 text-sm text-white font-mono outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
+                          />
+                        </div>
+
+                        <button 
+                          type="submit" 
+                          disabled={checkoutLoading}
+                          className="w-full py-4 bg-emerald-400 hover:bg-emerald-300 text-slate-950 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(52,211,153,0.3)]"
+                        >
+                          {checkoutLoading ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <>
+                              <ShieldCheck size={16} /> Submit Payment &amp; Open Client Portal
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}

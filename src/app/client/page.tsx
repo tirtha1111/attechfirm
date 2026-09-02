@@ -81,16 +81,32 @@ export default function ClientDashboard() {
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="font-bold uppercase tracking-wider text-xs text-slate-400 mb-4">Dedicated Support</h3>
                 <p className="text-sm text-slate-300 leading-relaxed mb-6">
-                  Need an update or want to share resources? Your dedicated technical directors are available directly.
+                  Need an update or want to share resources? Your technical leaders are directly reachable.
                 </p>
                 <div className="space-y-3">
-                  <a href="mailto:tirtharaj@example.com" className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3 transition-colors group">
-                    <span className="text-sm font-medium">Contact Tirtharaj</span>
-                    <ExternalLink size={14} className="text-slate-500 group-hover:text-white transition-colors" />
+                  <a 
+                    href="mailto:realtirtharaj@gmail.com?subject=Project%20Support%20-%20A%26T%20Tech%20Firm" 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3.5 transition-colors group"
+                  >
+                    <div>
+                      <span className="text-sm font-bold text-white block">Contact Tirtharaj</span>
+                      <span className="text-xs text-slate-400">realtirtharaj@gmail.com</span>
+                    </div>
+                    <ExternalLink size={16} className="text-slate-400 group-hover:text-white transition-colors" />
                   </a>
-                  <a href="mailto:aditya@example.com" className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3 transition-colors group">
-                    <span className="text-sm font-medium">Contact Aditya</span>
-                    <ExternalLink size={14} className="text-slate-500 group-hover:text-white transition-colors" />
+                  <a 
+                    href="mailto:hello@attechfirm.com?subject=Project%20Support%20(Aditya)%20-%20A%26T%20Tech%20Firm" 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3.5 transition-colors group"
+                  >
+                    <div>
+                      <span className="text-sm font-bold text-white block">Contact Aditya</span>
+                      <span className="text-xs text-slate-400">aditya@attechfirm.com</span>
+                    </div>
+                    <ExternalLink size={16} className="text-slate-400 group-hover:text-white transition-colors" />
                   </a>
                 </div>
               </div>

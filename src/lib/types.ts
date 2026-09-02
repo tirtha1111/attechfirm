@@ -59,6 +59,7 @@ export interface ContactInfo {
   phone: string;
   location: string;
   website: string;
+  upiId?: string;
 }
 
 export interface PageData {
@@ -300,6 +301,7 @@ export const INITIAL_PAGE_DATA: PageData = {
     email: "hello@attechfirm.com",
     phone: "+91 99999 99999",
     location: "India",
-    website: "www.attechfirm.com"
+    website: "www.attechfirm.com",
+    upiId: "9635996626@fam"
   }
 };
