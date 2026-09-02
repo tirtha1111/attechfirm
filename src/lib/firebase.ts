@@ -14,7 +14,8 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const db = initializeFirestore(app, {
-  databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7"
+  databaseId: "ai-studio-attechfirm-e7b76af3-b425-43fc-8a6d-a5cb8341c6e7",
+  experimentalForceLongPolling: true,
 });
 
 export const auth = getAuth(app);
