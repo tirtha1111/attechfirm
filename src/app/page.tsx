@@ -431,11 +431,12 @@ export default function Page() {
     }
   };
 
-  // Submit Lead Message to Firestore
+  // Submit Lead Message to Firestore & trigger email alert to attechfirm@gmail.com
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingContact(true);
     try {
+      // 1. Save to Firestore contacts collection
       await addDoc(collection(db, "contacts"), {
         name: contactName,
         email: contactEmail,
@@ -443,8 +444,22 @@ export default function Page() {
         message: contactMessage,
         createdAt: new Date().toISOString()
       });
+
+      // 2. Send instant email notification to attechfirm@gmail.com
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "contact",
+          name: contactName,
+          email: contactEmail,
+          subject: contactService,
+          message: contactMessage
+        })
+      }).catch((err) => console.warn("Background email notification error:", err));
+
       toast.success("Message sent successfully!", {
-        description: "Tirtharaj or Aditya will respond to your email within 24-48 hours."
+        description: "Your inquiry has been dispatched to attechfirm@gmail.com. We'll reply within 24-48 hours."
       });
       setContactName("");
       setContactEmail("");
@@ -479,6 +494,21 @@ export default function Page() {
       createdAt: new Date().toISOString(),
       status: "development"
     };
+
+    // 1. Send automatic email notification for new package purchase
+    fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "purchase",
+        name: checkoutName,
+        email: checkoutEmail,
+        phone: checkoutPhone || "N/A",
+        planTitle: selectedPlan.title,
+        amount: selectedPlan.currentPrice,
+        utrNumber: utrNumber.trim()
+      })
+    }).catch((err) => console.warn("Background purchase email notification error:", err));
 
     try {
       await addDoc(collection(db, "clients"), clientData);

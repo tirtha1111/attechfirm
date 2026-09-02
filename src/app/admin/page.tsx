@@ -1359,7 +1359,17 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-start justify-end">
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={`mailto:${lead.email}?subject=Re:%20Inquiry%20regarding%20${encodeURIComponent(lead.service)}%20-%20A%26T%20Tech%20Firm&body=Hi%20${encodeURIComponent(lead.name)},%0D%0A%0D%0AThank%20you%20for%20contacting%20A%26T%20Tech%20Firm.`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-sky-500/20"
+                          title="Reply via Email"
+                        >
+                          <Mail size={12} />
+                          <span>Reply</span>
+                        </a>
                         <button 
                           onClick={() => handleDeleteLead(lead.id)}
                           className="p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-xl transition-all flex items-center justify-center"
@@ -1445,14 +1455,25 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        <div className="bg-slate-950/80 rounded-xl p-3 text-xs text-white border border-emerald-500/15 leading-relaxed font-semibold flex items-center justify-between">
+                        <div className="bg-slate-950/80 rounded-xl p-3 text-xs text-white border border-emerald-500/15 leading-relaxed font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                           <div>
                             <span className="text-slate-400 text-[10px] block font-normal uppercase">Selected Package</span>
                             <span className="text-emerald-300">{client.planTitle}</span>
                           </div>
-                          <div className="text-right">
-                            <span className="text-slate-400 text-[10px] block font-normal uppercase">Development Status</span>
-                            <span className="text-blue-400 text-[11px] uppercase font-mono">{client.status}</span>
+                          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                            <div className="text-left sm:text-right">
+                              <span className="text-slate-400 text-[10px] block font-normal uppercase">Development Status</span>
+                              <span className="text-blue-400 text-[11px] uppercase font-mono">{client.status}</span>
+                            </div>
+                            <a
+                              href={`mailto:${client.email}?subject=Welcome%20to%20A%26T%20Tech%20Firm%20-%20${encodeURIComponent(client.planTitle)}%20Package&body=Hi%20${encodeURIComponent(client.name)},%0D%0A%0D%0AWe%20received%20your%20payment%20(Ref:%20${encodeURIComponent(client.utrNumber || client.paymentId)})%20for%20the%20${encodeURIComponent(client.planTitle)}%20package.%20We%20are%20excited%20to%20start%20working%20on%20your%20project.`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-emerald-500/20"
+                            >
+                              <Mail size={12} />
+                              <span>Email Client</span>
+                            </a>
                           </div>
                         </div>
                       </div>

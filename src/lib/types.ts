@@ -298,8 +298,8 @@ export const INITIAL_PAGE_DATA: PageData = {
     { q: "Can I request a custom package?", a: "Absolutely. If our packages don't fit your needs, request a custom quote and we'll tailor a solution around your requirements." }
   ],
   contactInfo: {
-    email: "hello@attechfirm.com",
-    phone: "+91 99999 99999",
+    email: "attechfirm@gmail.com",
+    phone: "+91 96359 96626",
     location: "India",
     website: "www.attechfirm.com",
     upiId: "9635996626@fam"
