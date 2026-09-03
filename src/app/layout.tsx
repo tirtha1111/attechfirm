@@ -1,4 +1,5 @@
 import "./globals.css";
+import GeminiAssistant from "@/components/GeminiAssistant";
 
 const AT_FAVICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M3 20h3.2l1.5-4.2h8.6L17.8 20H21L13.4 2h-2.8L3 20zm6.1-7.2L12 5.3l2.9 7.5H9.1z'/%3E%3C/svg%3E";
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="bg-[#030305] text-slate-100 min-h-screen antialiased selection:bg-slate-700 selection:text-white">
         {children}
+        <GeminiAssistant />
       </body>
     </html>
   );
