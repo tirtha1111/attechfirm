@@ -1,3 +1,8 @@
+import pkg from "@next/env";
+const { loadEnvConfig } = pkg;
+// Load env variables at the absolute start of execution
+loadEnvConfig(process.cwd());
+
 import express from "express";
 import next from "next";
 import { createServer } from "http";
@@ -93,14 +98,14 @@ app.prepare().then(() => {
 
   // Handle WebSocket Upgrade
   server.on("upgrade", (request, socket, head) => {
-    const { pathname } = new URL(request.url || "", `http://${request.headers.host || "localhost"}`);
-    if (pathname === "/api/live") {
+    const url = request.url || "";
+    const pathname = url.split("?")[0];
+    if (pathname === "/api/live" || pathname === "/api/live/") {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
-    } else {
-      socket.destroy();
     }
+    // Do not destroy other upgrade requests. This allows NextJS developer and HMR sockets to connect normally.
   });
 
   // NextJS routing handler
